@@ -1,0 +1,197 @@
+{
+  "identifier": "run.vineyard.pluginpacks.ad_tags",
+  "content_type": "vineyard:pluginpack",
+  "name": "Ad Tags",
+  "version": "1.0.0",
+  "description": "Extracts advertising, analytics, affiliate and payment account identifiers from a page and from the files a publisher authors about itself (ads.txt, /.well-known/). Shared identifiers link sites that share no infrastructure. Desktop only.",
+  "author": {
+    "name": "VINEYARD",
+    "url": "https://vineyard.run"
+  },
+  "license": "Apache-2.0",
+  "icon": "megaphone",
+  "platforms": {
+    "primary": "desktop",
+    "web": {
+      "runtime": "sandbox-js",
+      "entry": "dist/pack.mjs"
+    },
+    "desktop": {
+      "runtime": "sandbox-js",
+      "entry": "dist/pack.mjs",
+      "min_app_version": "0.1.0"
+    }
+  },
+  "distribution": {
+    "kind": "git",
+    "repository": "https://github.com/Vineyard-Intelligence/pluginpack-ad-tags",
+    "ref": "v1.0.0",
+    "path": "plugins/ad-tags.manifest.json"
+  },
+  "plugins": [
+    {
+      "identifier": "run.vineyard.plugins.ad_tags",
+      "content_type": "vineyard:plugin",
+      "name": "Ad Tag Extract",
+      "version": "1.0.0",
+      "description": "Fetches each selected URL, domain or IP and reads the ad-network, analytics, affiliate and payment account identifiers out of the served markup. Two sites carrying the same publisher ID are billed to one account, which outlasts the domain, the host and the certificate. Optionally follows the page's tag-manager container, which recovers identifiers the markup does not contain. Desktop only.",
+      "icon": "megaphone",
+      "license": "Apache-2.0",
+      "platforms": {
+        "primary": "desktop",
+        "web": {
+          "runtime": "sandbox-js",
+          "entry": "dist/pack.mjs"
+        },
+        "desktop": {
+          "runtime": "sandbox-js",
+          "entry": "dist/pack.mjs",
+          "min_app_version": "0.1.0"
+        }
+      },
+      "io": {
+        "consumes": [
+          {
+            "typepack": "run.vineyard.typepacks.infrastructure",
+            "category": "web",
+            "name": "url"
+          },
+          {
+            "typepack": "run.vineyard.typepacks.infrastructure",
+            "category": "infrastructure",
+            "name": "domain"
+          },
+          {
+            "typepack": "run.vineyard.typepacks.infrastructure",
+            "category": "infrastructure",
+            "name": "ip_address"
+          }
+        ],
+        "produces": [
+          {
+            "typepack": "run.vineyard.typepacks.infrastructure",
+            "category": "web",
+            "name": "tracking_id"
+          },
+          {
+            "typepack": "run.vineyard.typepacks.identity",
+            "category": "identity",
+            "name": "email_address"
+          }
+        ]
+      },
+      "params": {
+        "type": "object",
+        "properties": {
+          "follow_tag_manager": {
+            "type": "boolean",
+            "title": "Follow tag-manager containers",
+            "default": true,
+            "description": "Fetches googletagmanager.com/gtm.js for each container the page names, as static text. This is the only way to see identifiers a tag manager would have injected at runtime — the sandbox does not execute JavaScript — and it recovers Google Ads and AdSense accounts that are provably absent from the markup. One request to Google per container, carrying your address and the container ID, so Google learns the container was looked up. The site under investigation does not."
+          },
+          "try_www": {
+            "type": "boolean",
+            "title": "Also try the www / apex twin",
+            "default": true,
+            "description": "For a domain or IP seed, fetch both the bare host and its www counterpart. They are frequently different pages: in measurement one apex served a live payment key in 657KB of markup while its www twin served 197KB with none, at the same moment."
+          },
+          "cross_protocol": {
+            "type": "boolean",
+            "title": "Cross HTTP and HTTPS against ports 80 and 443",
+            "default": false,
+            "description": "Adds http://host:443 and https://host:80 to the two ordinary combinations. Worth it against a misconfigured server — some answer plain HTTP on the TLS port with a normal page — but usually those two return a protocol error rather than markup, so it doubles the requests to find something rare."
+          }
+        }
+      },
+      "scopes": {
+        "graph": [
+          "node:read",
+          "node:create",
+          "edge:create"
+        ],
+        "web_probe": {
+          "purpose": "Fetch the selected site’s markup, and optionally its tag-manager container, to read the account identifiers embedded in it. Anonymous, cookie-less, SSRF-guarded, desktop only."
+        }
+      },
+      "lifecycle": {
+        "persistence": "opt-in",
+        "controls": [
+          "progress",
+          "cancel"
+        ],
+        "progress": "determinate"
+      }
+    },
+    {
+      "identifier": "run.vineyard.plugins.ownership_files",
+      "content_type": "vineyard:plugin",
+      "name": "Ownership Files",
+      "version": "1.0.0",
+      "description": "Fetches the files a publisher authors about itself — /ads.txt, /app-ads.txt and /.well-known/ — and extracts the accounts declared in them. Unlike a tag in the markup these cannot be injected by a third party: they sit at fixed paths on the host’s own document root, so the accounts in them are the operator’s own claim. Low hit rate, high value when it hits. Desktop only.",
+      "icon": "file-badge",
+      "license": "Apache-2.0",
+      "platforms": {
+        "primary": "desktop",
+        "web": {
+          "runtime": "sandbox-js",
+          "entry": "dist/pack.mjs"
+        },
+        "desktop": {
+          "runtime": "sandbox-js",
+          "entry": "dist/pack.mjs",
+          "min_app_version": "0.1.0"
+        }
+      },
+      "io": {
+        "consumes": [
+          {
+            "typepack": "run.vineyard.typepacks.infrastructure",
+            "category": "infrastructure",
+            "name": "domain"
+          },
+          {
+            "typepack": "run.vineyard.typepacks.infrastructure",
+            "category": "web",
+            "name": "url"
+          }
+        ],
+        "produces": [
+          {
+            "typepack": "run.vineyard.typepacks.infrastructure",
+            "category": "web",
+            "name": "tracking_id"
+          }
+        ]
+      },
+      "params": {
+        "type": "object",
+        "properties": {
+          "all_ad_systems": {
+            "type": "boolean",
+            "title": "Extract every DIRECT account in ads.txt, not just the publisher’s own",
+            "default": false,
+            "description": "Off by default because of volume, not noise. An ads.txt DIRECT sweep measured a median of 74 accounts per file and 1,637 from the largest, and most rows record a relationship with an exchange that thousands of unrelated publishers also use — ten sites sharing one agency’s copied ads.txt produced a 10-way clique of 54 shared nodes. The rows that identify the publisher itself (its own Google account, OWNERDOMAIN, INVENTORYPARTNERDOMAIN) are collected either way. Turn this on when you are comparing two specific sites row by row."
+          }
+        }
+      },
+      "scopes": {
+        "graph": [
+          "node:read",
+          "node:create",
+          "edge:create"
+        ],
+        "web_probe": {
+          "purpose": "Fetch /ads.txt, /app-ads.txt and /.well-known/ documents from the selected host. Anonymous, cookie-less, SSRF-guarded, desktop only."
+        }
+      },
+      "lifecycle": {
+        "persistence": "opt-in",
+        "controls": [
+          "progress",
+          "cancel"
+        ],
+        "progress": "determinate"
+      }
+    }
+  ]
+}

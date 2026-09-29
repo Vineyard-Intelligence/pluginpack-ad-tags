@@ -12,7 +12,7 @@
 //
 // The measured trade-off, on adult and piracy hosts specifically: assetlinks answered on 1 of 10,
 // microsoft-identity-association on 2 of 13, and ads.txt on 0 of 15. So the hit rate is low, the
-// requests are cheap and static, and when one does answer it is the best thing in the case. That
+// requests are cheap and static, and when one does answer it is the best thing in the project. That
 // is why this is a separate plugin rather than four more fetches bolted onto the page scan — it is
 // worth running on its own, against a whole selection, and worth NOT running when the analyst only
 // wants the markup.

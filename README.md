@@ -13,8 +13,7 @@ Two plugins:
   paths on the host's own document root and cannot be injected by a third party, so an account
   declared there is the operator's own claim.
 
-Desktop only: the target is whatever host the analyst selected, so it cannot be a fixed `network`
-allowlist entry, and sites do not send CORS headers for their own HTML.
+Desktop only: sites do not send CORS headers for their own HTML, so the browser cannot read it.
 
 ## Why account identifiers
 
@@ -25,9 +24,7 @@ history. A shared publisher ID outlives the pivots that stop working.
 
 ## The collector table
 
-121 collectors, one per markup **shape** rather than per provider. Every pattern was measured
-against 177 live pages, 96 ads.txt / app-ads.txt files, fetched tag-manager containers and
-`/.well-known/` documents, plus a negative corpus of minified libraries where nothing may fire.
+121 collectors, one per markup **shape** rather than per provider.
 
 Values are namespaced `provider:identifier`. Half these networks issue a bare five-to-nine digit
 integer, and `web.tracking_id` identity is the value alone, so an un-namespaced `4823917` would

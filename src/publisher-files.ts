@@ -1,4 +1,4 @@
-// Ownership Files — read the documents a publisher authors ABOUT ITSELF and pull the account
+// Publisher Files Extract — read the documents a publisher authors ABOUT ITSELF and pull the account
 // identifiers out of them.
 //
 // This is a different class of evidence from the page-markup plugin, and stronger. An inline
@@ -50,14 +50,14 @@ function hostOf(n: GraphNode): { id: string; host: string } | null {
     return null;
 }
 
-export const ownershipFiles = definePlugin({
+export const publisherFilesExtract = definePlugin({
     manifest: {
-        identifier: 'run.vineyard.plugins.ownership_files',
+        identifier: 'run.vineyard.plugins.publisher_files_extract',
         content_type: 'vineyard:plugin',
-        name: 'Ownership Files',
-        version: '1.0.0',
+        name: 'Publisher Files Extract',
+        version: '1.1.0',
         description:
-            'Fetches the files a publisher authors about itself — /ads.txt, /app-ads.txt and /.well-known/ — and extracts the accounts declared in them. Unlike a tag in the markup these cannot be injected by a third party: they sit at fixed paths on the host’s own document root, so the accounts in them are the operator’s own claim. Low hit rate, high value when it hits. Desktop only.',
+            'Fetches /ads.txt, /app-ads.txt and the /.well-known/ app-association files from the host of each selected Domain or URL and extracts the identifiers declared in them (ads.txt accounts, Android package names and signing-certificate fingerprints, Apple team IDs, Microsoft Entra application IDs) as Tracking ID nodes linked by "carries tracking ID". From ads.txt it takes the Google publisher ID, OWNERDOMAIN and INVENTORYPARTNERDOMAIN, plus every other DIRECT account when all_ad_systems is on. Desktop only.',
         icon: 'file-badge',
         author: { name: 'VINEYARD', url: 'https://vineyard.run' },
         license: 'Apache-2.0',
@@ -100,7 +100,7 @@ export const ownershipFiles = definePlugin({
         if (!ids.length) return { summary: 'Select a domain or URL node first', counts: { created: 0 } };
         if (!ctx.net?.probe) {
             return {
-                summary: 'Ownership file collection needs the desktop shell (the target is dynamic and these files are served without CORS headers). Run this in the desktop app.',
+                summary: 'Publisher file collection needs the desktop shell (the target is dynamic and these files are served without CORS headers). Run this in the desktop app.',
                 counts: { created: 0 },
             };
         }

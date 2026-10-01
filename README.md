@@ -5,13 +5,12 @@ from the files a publisher authors about itself.
 
 Two plugins:
 
-- **Ad Tag Extract** — probes a selected `web.url`, `infrastructure.domain` or
-  `infrastructure.ip_address`, reads the served markup, and emits the account identifiers in it.
-  Optionally follows the page's tag-manager container, which recovers identifiers the markup does
-  not contain.
-- **Ownership Files** — fetches `/ads.txt`, `/app-ads.txt` and `/.well-known/*`. These sit at fixed
-  paths on the host's own document root and cannot be injected by a third party, so an account
-  declared there is the operator's own claim.
+- **Ad Tag Extract** (`run.vineyard.plugins.ad_tags`) — fetches a selected `web.url`,
+  `infrastructure.domain` or `infrastructure.ip_address` and extracts the account identifiers in its
+  markup. By default also reads the Google Tag Manager containers the page references.
+- **Publisher Files Extract** (`run.vineyard.plugins.publisher_files_extract`) — fetches
+  `/ads.txt`, `/app-ads.txt` and the `/.well-known/` app-association files and extracts the
+  identifiers declared in them.
 
 Desktop only: sites do not send CORS headers for their own HTML, so the browser cannot read it.
 

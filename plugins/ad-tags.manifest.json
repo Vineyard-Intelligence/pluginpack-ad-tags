@@ -2,8 +2,8 @@
   "identifier": "run.vineyard.pluginpacks.ad_tags",
   "content_type": "vineyard:pluginpack",
   "name": "Ad Tags",
-  "version": "1.0.0",
-  "description": "Extracts advertising, analytics, affiliate and payment account identifiers from a page and from the files a publisher authors about itself (ads.txt, /.well-known/). Shared identifiers link sites that share no infrastructure. Desktop only.",
+  "version": "1.1.0",
+  "description": "Extracts advertising, analytics, affiliate and payment account identifiers from a site's markup and from its ads.txt and /.well-known/ files. Desktop only.",
   "author": {
     "name": "VINEYARD",
     "url": "https://vineyard.run"
@@ -25,7 +25,7 @@
   "distribution": {
     "kind": "git",
     "repository": "https://github.com/Vineyard-Intelligence/pluginpack-ad-tags",
-    "ref": "v1.0.0",
+    "ref": "v1.1.0",
     "path": "plugins/ad-tags.manifest.json"
   },
   "plugins": [
@@ -33,8 +33,8 @@
       "identifier": "run.vineyard.plugins.ad_tags",
       "content_type": "vineyard:plugin",
       "name": "Ad Tag Extract",
-      "version": "1.0.0",
-      "description": "Fetches each selected URL, domain or IP and reads the ad-network, analytics, affiliate and payment account identifiers out of the served markup. Two sites carrying the same publisher ID are billed to one account, which outlasts the domain, the host and the certificate. Optionally follows the page's tag-manager container, which recovers identifiers the markup does not contain. Desktop only.",
+      "version": "1.1.0",
+      "description": "Fetches each selected URL, Domain or IP Address and extracts the advertising, analytics, tag-manager, site-verification, affiliate and payment account identifiers in its markup as Tracking ID nodes linked by \"carries tracking ID\"; PayPal recipient addresses become Email Address nodes linked by \"pays\". By default also reads the Google Tag Manager containers the page references. Desktop only.",
       "icon": "megaphone",
       "license": "Apache-2.0",
       "platforms": {
@@ -123,11 +123,11 @@
       }
     },
     {
-      "identifier": "run.vineyard.plugins.ownership_files",
+      "identifier": "run.vineyard.plugins.publisher_files_extract",
       "content_type": "vineyard:plugin",
-      "name": "Ownership Files",
-      "version": "1.0.0",
-      "description": "Fetches the files a publisher authors about itself — /ads.txt, /app-ads.txt and /.well-known/ — and extracts the accounts declared in them. Unlike a tag in the markup these cannot be injected by a third party: they sit at fixed paths on the host’s own document root, so the accounts in them are the operator’s own claim. Low hit rate, high value when it hits. Desktop only.",
+      "name": "Publisher Files Extract",
+      "version": "1.1.0",
+      "description": "Fetches /ads.txt, /app-ads.txt and the /.well-known/ app-association files from the host of each selected Domain or URL and extracts the identifiers declared in them (ads.txt accounts, Android package names and signing-certificate fingerprints, Apple team IDs, Microsoft Entra application IDs) as Tracking ID nodes linked by \"carries tracking ID\". From ads.txt it takes the Google publisher ID, OWNERDOMAIN and INVENTORYPARTNERDOMAIN, plus every other DIRECT account when all_ad_systems is on. Desktop only.",
       "icon": "file-badge",
       "license": "Apache-2.0",
       "platforms": {

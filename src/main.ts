@@ -14,14 +14,14 @@
 // say so and stop rather than half-working.
 import { definePluginPack } from './sdk';
 import { adTags } from './ad-tags';
-import { ownershipFiles } from './ownership-files';
+import { publisherFilesExtract } from './publisher-files';
 
 export default definePluginPack({
     identifier: 'run.vineyard.pluginpacks.ad_tags',
     content_type: 'vineyard:pluginpack',
     name: 'Ad Tags',
-    version: '1.0.0',
+    version: '1.1.0',
     description:
-        'Extracts advertising, analytics, affiliate and payment account identifiers from a page and from the files a publisher authors about itself (ads.txt, /.well-known/). Shared identifiers link sites that share no infrastructure. Desktop only.',
-    plugins: [adTags, ownershipFiles],
+        "Extracts advertising, analytics, affiliate and payment account identifiers from a site's markup and from its ads.txt and /.well-known/ files. Desktop only.",
+    plugins: [adTags, publisherFilesExtract],
 });

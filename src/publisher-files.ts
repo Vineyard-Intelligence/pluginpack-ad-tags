@@ -55,7 +55,7 @@ export const publisherFilesExtract = definePlugin({
         identifier: 'run.vineyard.plugins.publisher_files_extract',
         content_type: 'vineyard:plugin',
         name: 'Publisher Files Extract',
-        version: '1.1.0',
+        version: '1.1.1',
         description:
             'Fetches /ads.txt, /app-ads.txt and the /.well-known/ app-association files from the host of each selected Domain or URL and extracts the identifiers declared in them (ads.txt accounts, Android package names and signing-certificate fingerprints, Apple team IDs, Microsoft Entra application IDs) as Tracking ID nodes linked by "carries tracking ID". From ads.txt it takes the Google publisher ID, OWNERDOMAIN and INVENTORYPARTNERDOMAIN, plus every other DIRECT account when all_ad_systems is on. Desktop only.',
         icon: 'file-badge',
@@ -78,10 +78,10 @@ export const publisherFilesExtract = definePlugin({
             properties: {
                 all_ad_systems: {
                     type: 'boolean',
-                    title: 'Extract every DIRECT account in ads.txt, not just the publisher’s own',
+                    title: 'Extract every DIRECT account',
                     default: false,
                     description:
-                        'Off by default because of volume, not noise. An ads.txt DIRECT sweep measured a median of 74 accounts per file and 1,637 from the largest, and most rows record a relationship with an exchange that thousands of unrelated publishers also use — ten sites sharing one agency’s copied ads.txt produced a 10-way clique of 54 shared nodes. The rows that identify the publisher itself (its own Google account, OWNERDOMAIN, INVENTORYPARTNERDOMAIN) are collected either way. Turn this on when you are comparing two specific sites row by row.',
+                        'Also extract other ad systems’ DIRECT accounts from ads.txt and app-ads.txt. Google DIRECT publisher IDs, OWNERDOMAIN and INVENTORYPARTNERDOMAIN are extracted either way. Off by default.',
                 },
             },
         },
@@ -89,7 +89,7 @@ export const publisherFilesExtract = definePlugin({
             graph: ['node:read', 'node:create', 'edge:create'],
             web_probe: {
                 purpose:
-                    'Fetch /ads.txt, /app-ads.txt and /.well-known/ documents from the selected host. Anonymous, cookie-less, SSRF-guarded, desktop only.',
+                    'Fetch /ads.txt, /app-ads.txt and the /.well-known/ app-association files from the selected hosts.',
             },
         },
         lifecycle: { persistence: 'opt-in', controls: ['progress', 'cancel'], progress: 'determinate' },
@@ -161,10 +161,10 @@ export const publisherFilesExtract = definePlugin({
         if (filesWithHits.length) parts.push(filesWithHits.slice(0, 6).join(', '));
         if (challenged) parts.push(`${challenged} blocked by a bot challenge (unknown, not absent)`);
         if (skipped) parts.push(`${skipped} selected node(s) were not a domain or URL`);
-        if (!allSystems && found) parts.push('ads.txt reseller rows were not collected — turn on “Extract every DIRECT account” to include them');
+        if (!allSystems && found) parts.push("other ad systems' DIRECT accounts were not collected — turn on “Extract every DIRECT account” to include them");
         if (tally.hubs.length) {
             const worst = tally.hubs.sort((a, b) => b.edges - a.edges)[0];
-            parts.push(`${tally.hubs.length} account(s) are already linked to many sites — ${worst.value} has ${worst.edges}; that fan-out reads as a reseller or a network, not one operator`);
+            parts.push(`${tally.hubs.length} account(s) are already linked to many sites — ${worst.value} has ${worst.edges}`);
         }
         return { summary: parts.join('. ') + '.', counts: { created: tally.created, reused: tally.reused, files: found, absent, challenged } };
     },

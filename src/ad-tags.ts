@@ -24,7 +24,7 @@ export const adTags = definePlugin({
         identifier: 'run.vineyard.plugins.ad_tags',
         content_type: 'vineyard:plugin',
         name: 'Ad Tag Extract',
-        version: '1.1.0',
+        version: '1.1.1',
         description:
             'Fetches each selected URL, Domain or IP Address and extracts the advertising, analytics, tag-manager, site-verification, affiliate and payment account identifiers in its markup as Tracking ID nodes linked by "carries tracking ID"; PayPal recipient addresses become Email Address nodes linked by "pays". By default also reads the Google Tag Manager containers the page references. Desktop only.',
         icon: 'megaphone',
@@ -54,21 +54,21 @@ export const adTags = definePlugin({
                     title: 'Follow tag-manager containers',
                     default: true,
                     description:
-                        "Fetches googletagmanager.com/gtm.js for each container the page names, as static text. This is the only way to see identifiers a tag manager would have injected at runtime \u2014 the sandbox does not execute JavaScript \u2014 and it recovers Google Ads and AdSense accounts that are provably absent from the markup. One request to Google per container, carrying your address and the container ID, so Google learns the container was looked up. The site under investigation does not.",
+                        'Also fetch each Google Tag Manager container the page references (up to four per page, from googletagmanager.com) and extract the identifiers in it. On by default.',
                 },
                 try_www: {
                     type: 'boolean',
-                    title: 'Also try the www / apex twin',
+                    title: 'Also try the www / apex host',
                     default: true,
                     description:
-                        'For a domain or IP seed, fetch both the bare host and its www counterpart. They are frequently different pages: in measurement one apex served a live payment key in 657KB of markup while its www twin served 197KB with none, at the same moment.',
+                        'For a selected Domain, also fetch its www host (or the bare host if the domain already starts with www). No effect on URLs or IP addresses. On by default.',
                 },
                 cross_protocol: {
                     type: 'boolean',
-                    title: 'Cross HTTP and HTTPS against ports 80 and 443',
+                    title: 'Also try HTTP on 443 and HTTPS on 80',
                     default: false,
                     description:
-                        'Adds http://host:443 and https://host:80 to the two ordinary combinations. Worth it against a misconfigured server \u2014 some answer plain HTTP on the TLS port with a normal page \u2014 but usually those two return a protocol error rather than markup, so it doubles the requests to find something rare.',
+                        'For a selected Domain or IP address, also request http://host:443 and https://host:80, making four requests per host instead of two. No effect on URLs. Off by default.',
                 },
             },
         },
@@ -76,7 +76,7 @@ export const adTags = definePlugin({
             graph: ['node:read', 'node:create', 'edge:create'],
             web_probe: {
                 purpose:
-                    'Fetch the selected site’s markup, and optionally its tag-manager container, to read the account identifiers embedded in it. Anonymous, cookie-less, SSRF-guarded, desktop only.',
+                    'Fetch the selected sites’ pages, and optionally their Google Tag Manager containers, to extract the account identifiers in them.',
             },
         },
         lifecycle: { persistence: 'opt-in', controls: ['progress', 'cancel'], progress: 'determinate' },

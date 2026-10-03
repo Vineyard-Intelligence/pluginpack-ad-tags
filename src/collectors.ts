@@ -73,7 +73,7 @@ export interface Collector {
 /**
  * Provider slugs that name one company twice.
  *
- * Identity is the namespaced value, so two slugs for one issuer split one account into two nodes —
+ * Identity is (provider, value), so two slugs for one issuer split one account into two nodes —
  * the exact failure this type exists to avoid, arrived at from the wrong end. Every pair here was
  * MEASURED as a split, not assumed from brand knowledge:
  *

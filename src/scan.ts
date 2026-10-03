@@ -3,11 +3,10 @@
 // A collector is a regex plus the metadata needed to turn a match into a node. Everything
 // interesting is in the constraints, not the loop:
 //
-//  - The emitted node value is NAMESPACED `<provider>:<raw>`. Half these networks issue a bare
-//    5-9 digit integer as the account ID, and web.tracking_id's identity is the value alone, so
-//    an un-namespaced ExoClick zone 4823917 and an unrelated Monetag zone 4823917 would converge
-//    on ONE node and assert a same-operator link that does not exist. The namespace is what makes
-//    identity-on-value-alone safe here.
+//  - The emitted node value is the identifier as the page carries it, and the provider slug rides
+//    alongside it. web.tracking_id's identity is (provider, value): half these networks issue a
+//    bare 5-9 digit integer as the account ID, and an ExoClick zone 4823917 must not converge with
+//    an unrelated Monetag zone 4823917. So a provider is required, and one issuer has one slug.
 //  - `pageGuard` is a whole-document precondition. It exists for patterns that are individually
 //    ambiguous but unambiguous in context — a bare `UA-` token is worth emitting only on a page
 //    that also loads a Google analytics script.
@@ -25,7 +24,7 @@ export interface Hit {
     source: string;
     /** The identifier as it appeared. */
     raw: string;
-    /** The node value: `provider:raw`. */
+    /** The node value: the identifier verbatim (identity is provider + value). */
     value: string;
     emit: 'tracking_id' | 'email';
     note: string;
@@ -79,7 +78,7 @@ export function scan(
 ): ScanResult {
     const hits: Hit[] = [];
     const broken: string[] = [];
-    const seen = new Set<string>(); // one node per distinct value per document
+    const seen = new Set<string>(); // one node per distinct (provider, value) per document
 
     for (const c of collectors) {
         if (c.phase !== phase) continue;
@@ -116,11 +115,11 @@ export function scan(
             const raw = googlePubPrefix(provider, raw0);
 
             const emit = c.emit === 'email' ? 'email' : 'tracking_id';
-            const value = emit === 'email' ? raw : `${provider}:${raw}`;
-            if (seen.has(value)) continue;
-            seen.add(value);
+            const dedupKey = emit === 'email' ? raw : `${provider}:${raw}`;
+            if (seen.has(dedupKey)) continue;
+            seen.add(dedupKey);
 
-            hits.push({ key: c.key, provider, kind: c.kind, source: c.source, raw, value, emit, note: c.note });
+            hits.push({ key: c.key, provider, kind: c.kind, source: c.source, raw, value: raw, emit, note: c.note });
         }
     }
     return { hits, broken };

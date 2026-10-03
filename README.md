@@ -25,9 +25,10 @@ history. A shared publisher ID outlives the pivots that stop working.
 
 121 collectors, one per markup **shape** rather than per provider.
 
-Values are namespaced `provider:identifier`. Half these networks issue a bare five-to-nine digit
-integer, and `web.tracking_id` identity is the value alone, so an un-namespaced `4823917` would
-merge one operator's ad zone with an unrelated operator's.
+Each node holds the identifier exactly as the page carries it (`G-SXM8TFRYSW`, `4823917`) with
+the issuer in `provider`. `web.tracking_id` identity is the pair: half these networks issue a bare
+five-to-nine digit integer, so `4823917` alone would merge one operator's ad zone with an
+unrelated operator's.
 
 ## Checks
 

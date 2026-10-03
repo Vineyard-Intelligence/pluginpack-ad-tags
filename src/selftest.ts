@@ -41,7 +41,7 @@ for (const c of COLLECTORS) {
     check(PHASES.has(c.phase), `${c.key}: phase "${c.phase}" is not a fetch phase`);
     check(c.flags.includes('g'), `${c.key}: flags must include g or exec() loops on the first match`);
     check(!!c.provider || !!c.providerFromGroup, `${c.key}: needs either a provider slug or providerFromGroup`);
-    check(/^[a-z0-9_.]*$/.test(c.provider), `${c.key}: provider "${c.provider}" must be a lower-case slug — it is the node-value namespace, and two spellings split one account into two nodes`);
+    check(/^[a-z0-9_.]*$/.test(c.provider), `${c.key}: provider "${c.provider}" must be a lower-case slug — it is half the node identity, and two spellings split one account into two nodes`);
 
     let re: RegExp | null = null;
     try {
@@ -77,7 +77,8 @@ for (const f of FIXTURES) {
     // includeOptIn: the ads.txt DIRECT sweep is off in normal runs for volume reasons, but it is
     // still a collector and still has to be correct when the analyst turns it on.
     const { hits } = scan(f.doc, f.phase, COLLECTORS, { includeOptIn: true });
-    const values = hits.map((h) => h.value);
+    // Fixtures name a hit as `provider:value` — the pair that is its identity.
+    const values = hits.map((h) => (h.emit === 'email' ? h.value : `${h.provider}:${h.value}`));
     for (const want of f.expect) check(values.includes(want), `fixture "${f.name}": expected ${want}, got [${values.join(', ')}]`);
     for (const not of f.expectNot ?? []) check(!values.includes(not), `fixture "${f.name}": must NOT emit ${not}, but did`);
 }

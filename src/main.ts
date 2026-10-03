@@ -20,7 +20,7 @@ export default definePluginPack({
     identifier: 'run.vineyard.pluginpacks.ad_tags',
     content_type: 'vineyard:pluginpack',
     name: 'Ad Tags',
-    version: '1.1.1',
+    version: '1.2.0',
     description:
         "Extracts advertising, analytics, affiliate and payment account identifiers from a site's markup and from its ads.txt and /.well-known/ files. Desktop only.",
     plugins: [adTags, publisherFilesExtract],

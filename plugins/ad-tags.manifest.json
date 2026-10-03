@@ -2,7 +2,7 @@
   "identifier": "run.vineyard.pluginpacks.ad_tags",
   "content_type": "vineyard:pluginpack",
   "name": "Ad Tags",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Extracts advertising, analytics, affiliate and payment account identifiers from a site's markup and from its ads.txt and /.well-known/ files. Desktop only.",
   "author": {
     "name": "VINEYARD",
@@ -25,7 +25,7 @@
   "distribution": {
     "kind": "git",
     "repository": "https://github.com/Vineyard-Intelligence/pluginpack-ad-tags",
-    "ref": "v1.1.1",
+    "ref": "v1.2.0",
     "path": "plugins/ad-tags.manifest.json"
   },
   "plugins": [
@@ -33,7 +33,7 @@
       "identifier": "run.vineyard.plugins.ad_tags",
       "content_type": "vineyard:plugin",
       "name": "Ad Tag Extract",
-      "version": "1.1.1",
+      "version": "1.2.0",
       "description": "Fetches each selected URL, Domain or IP Address and extracts the advertising, analytics, tag-manager, site-verification, affiliate and payment account identifiers in its markup as Tracking ID nodes linked by \"carries tracking ID\"; PayPal recipient addresses become Email Address nodes linked by \"pays\". By default also reads the Google Tag Manager containers the page references. Desktop only.",
       "icon": "megaphone",
       "license": "Apache-2.0",
@@ -126,7 +126,7 @@
       "identifier": "run.vineyard.plugins.publisher_files_extract",
       "content_type": "vineyard:plugin",
       "name": "Publisher Files Extract",
-      "version": "1.1.1",
+      "version": "1.2.0",
       "description": "Fetches /ads.txt, /app-ads.txt and the /.well-known/ app-association files from the host of each selected Domain or URL and extracts the identifiers declared in them (ads.txt accounts, Android package names and signing-certificate fingerprints, Apple team IDs, Microsoft Entra application IDs) as Tracking ID nodes linked by \"carries tracking ID\". From ads.txt it takes the Google publisher ID, OWNERDOMAIN and INVENTORYPARTNERDOMAIN, plus every other DIRECT account when all_ad_systems is on. Desktop only.",
       "icon": "file-badge",
       "license": "Apache-2.0",

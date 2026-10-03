@@ -24,7 +24,7 @@ export const adTags = definePlugin({
         identifier: 'run.vineyard.plugins.ad_tags',
         content_type: 'vineyard:plugin',
         name: 'Ad Tag Extract',
-        version: '1.1.1',
+        version: '1.2.0',
         description:
             'Fetches each selected URL, Domain or IP Address and extracts the advertising, analytics, tag-manager, site-verification, affiliate and payment account identifiers in its markup as Tracking ID nodes linked by "carries tracking ID"; PayPal recipient addresses become Email Address nodes linked by "pays". By default also reads the Google Tag Manager containers the page references. Desktop only.',
         icon: 'megaphone',

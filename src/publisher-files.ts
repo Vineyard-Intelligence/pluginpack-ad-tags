@@ -55,7 +55,7 @@ export const publisherFilesExtract = definePlugin({
         identifier: 'run.vineyard.plugins.publisher_files_extract',
         content_type: 'vineyard:plugin',
         name: 'Publisher Files Extract',
-        version: '1.1.1',
+        version: '1.2.0',
         description:
             'Fetches /ads.txt, /app-ads.txt and the /.well-known/ app-association files from the host of each selected Domain or URL and extracts the identifiers declared in them (ads.txt accounts, Android package names and signing-certificate fingerprints, Apple team IDs, Microsoft Entra application IDs) as Tracking ID nodes linked by "carries tracking ID". From ads.txt it takes the Google publisher ID, OWNERDOMAIN and INVENTORYPARTNERDOMAIN, plus every other DIRECT account when all_ad_systems is on. Desktop only.',
         icon: 'file-badge',

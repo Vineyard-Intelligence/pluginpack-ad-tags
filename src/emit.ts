@@ -46,11 +46,14 @@ export function newTally(): EmitTally {
     return { created: 0, reused: 0, hubs: [] };
 }
 
-async function findExisting(ctx: HostContext, type: string, key: string, value: string): Promise<GraphNode | null> {
+/** Match on every identity field: an email alone, or a tracking ID's (provider, value). */
+async function findExisting(ctx: HostContext, type: string, match: Record<string, string>): Promise<GraphNode | null> {
     if (!ctx.graph?.list) return null;
+    const same = (n: GraphNode) =>
+        Object.entries(match).every(([k, v]) => String(n.data?.[k] ?? '').toLowerCase() === v.toLowerCase());
     try {
         const { nodes } = await ctx.graph.list({ type });
-        return nodes.find((n) => String(n.data?.[key] ?? '').toLowerCase() === value.toLowerCase()) ?? null;
+        return nodes.find(same) ?? null;
     } catch {
         return null;
     }
@@ -83,15 +86,18 @@ export async function emitHit(
 ): Promise<void> {
     const isEmail = hit.emit === 'email';
     const type = isEmail ? 'identity.email_address' : 'web.tracking_id';
-    const idKey = isEmail ? 'email' : 'value';
-
-    const existing = await findExisting(ctx, type, idKey, hit.value);
+    const existing = await findExisting(
+        ctx,
+        type,
+        isEmail ? { email: hit.value } : { provider: hit.provider, value: hit.value },
+    );
     let node: GraphNode;
     if (existing) {
         node = existing;
         tally.reused++;
         const edges = await edgeCount(ctx, String(node.id));
-        if (edges >= fanoutLimit(hit.kind)) tally.hubs.push({ value: hit.value, edges, kind: hit.kind });
+        const label = isEmail ? hit.value : `${hit.provider} ${hit.value}`;
+        if (edges >= fanoutLimit(hit.kind)) tally.hubs.push({ value: label, edges, kind: hit.kind });
     } else {
         const data: Record<string, unknown> = isEmail
             ? { email: hit.value, domain: hit.value.split('@')[1] || '' }

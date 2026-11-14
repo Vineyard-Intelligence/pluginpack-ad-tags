@@ -65,8 +65,12 @@ export interface Collector {
      * OWNERDOMAIN, INVENTORYPARTNERDOMAIN — are separate collectors and stay on.
      */
     optIn?: boolean;
-    /** 'email' routes to identity.email_address instead of web.tracking_id. */
-    emit?: 'tracking_id' | 'email';
+    /**
+     * 'email' routes to identity.email_address instead of web.tracking_id. 'crypto_address' routes
+     * to the Cryptocurrency pack's cryptocurrency.crypto_address, on the network the provider slug
+     * (or, for an `ethereum:` request, the chain id) names — see payment.ts.
+     */
+    emit?: 'tracking_id' | 'email' | 'crypto_address';
     note: string;
 }
 
@@ -418,6 +422,7 @@ export const COLLECTORS: Collector[] = [
         regex: "\\b(bc1(?:[02-9ac-hj-np-z]{39}|[02-9ac-hj-np-z]{59}))\\b",
         flags: "g",
         group: 1,
+        emit: "crypto_address",
         note: "length-anchored to real witness programs (42=P2WPKH, 62=P2WSH/P2TR); {11,71} is too loose. No bare legacy base58 and no bare 0x[0-9a-f]{40} at all, per the entry's measured FP finding",
     },
     {
@@ -937,6 +942,7 @@ export const COLLECTORS: Collector[] = [
         regex: "\\b([48][0-9AB][1-9A-HJ-NP-Za-km-z]{93})\\b",
         flags: "g",
         group: 1,
+        emit: "crypto_address",
         note: "95-char standard+subaddress; [48] not [4] — a 4-only class misses every 8-prefixed address including Monero's own 888t… donation address. 106-char integrated form deliberately excluded, its payment id is mintable per-donor and would fragment one wallet",
     },
     {
@@ -1501,10 +1507,23 @@ export const COLLECTORS: Collector[] = [
         kind: "payment",
         source: "html_link",
         phase: "markup",
-        regex: "\\b(bitcoin|bitcoincash|ethereum|litecoin|dogecoin|monero):([A-Za-z0-9]{20,120})(?=[?\"'\\s<&#]|$)",
+        regex: "\\b(bitcoin|bitcoincash|litecoin|dogecoin|monero):([A-Za-z0-9]{20,120})(?=[?\"'\\s<&#]|$)",
         flags: "gi",
         group: 2,
-        note: "scheme-anchored, query string excluded by the lookahead. Value is the BARE address (group 2) so it converges with the bare matchers onto ONE node; the chain rides in provider (lowercase it) — emitting 'bitcoin:bc1q…' here would split one wallet across two nodes",
+        emit: "crypto_address",
+        note: "scheme-anchored, query string excluded by the lookahead. Value is the BARE address (group 2) so it converges with the bare matchers onto ONE node; the scheme names the network. ethereum: is its own collector below, because an EIP-681 request can carry a chain id and name a token contract in front of the payee",
+    },
+    {
+        key: "crypto_eip681_uri",
+        provider: "ethereum",
+        kind: "payment",
+        source: "html_link",
+        phase: "markup",
+        regex: "\\bethereum:(?:pay-)?(0x[0-9a-fA-F]{40})(?![0-9a-fA-F])(?:@([0-9A-Za-z]{1,66}))?(?:\\/([A-Za-z_][A-Za-z0-9_]{0,63}))?(?:\\?([^\"'\\s<>#]{0,512}))?",
+        flags: "gi",
+        group: 1,
+        emit: "crypto_address",
+        note: "EIP-681: optional pay- prefix, @chain_id, /function, ?params. The payee is the target, except for /transfer, where the target is the ERC-20 contract and the payee is the address= parameter (payment.ts). The whole @token is captured and payment.ts takes it as a chain id only when it is decimal, as EIP-681 writes it: reading digits alone turned @0x38 (BSC in hex) into chain 0, and stopping there would also lose a /transfer after it. ENS targets are not matched: a name is not an address",
     },
     {
         key: "matomo_paq_setsiteid",

@@ -17,8 +17,21 @@
 // it. We do not refuse to create the edge — the analyst decides, and a high count is sometimes the
 // finding — but a run that quietly produced a hundred-edge hub and called it a discovery has
 // misled its reader, so the count is reported.
+//
+// ONE LINK PER PAIR, AND ITS WORDING IS NOT OURS TO CHANGE. A project holds one edge per
+// (from, to), and a create against a pair that is already linked is staged as a proposal to
+// RELABEL that edge. So a run that re-asserted its own label over an analyst's "donation wallet"
+// put a relabel in the review on every re-run, and with Apply automatically on it overwrote the
+// analyst's wording. When the pair is linked, the existing label is sent back unchanged and only
+// the data is added. Both this and the fan-out count read the node's edges, which the host hands
+// over only with `edge:read`; without it there is nothing to read, and the run falls back to its
+// own label and a count of zero.
 import type { HostContext, GraphNode } from './sdk';
 import type { Hit } from './scan';
+import { identityFold } from './crypto-address';
+
+/** The Cryptocurrency type pack's address type, identified by (network, address, memo). */
+export const CRYPTO_ADDRESS = 'cryptocurrency.crypto_address';
 
 /**
  * Above these many existing edges, an identifier is more likely shared infrastructure than a
@@ -38,12 +51,16 @@ function fanoutLimit(kind: string): number {
 export interface EmitTally {
     created: number;
     reused: number;
+    /** Payment addresses the project refused to create: the Cryptocurrency type pack missing, or
+     *  older than the network written. Counted apart because the fix is the project's, not the
+     *  value's. */
+    refused: number;
     /** value -> edge count, for identifiers already linked to more sites than fanoutLimit allows. */
     hubs: Array<{ value: string; edges: number; kind: string }>;
 }
 
 export function newTally(): EmitTally {
-    return { created: 0, reused: 0, hubs: [] };
+    return { created: 0, reused: 0, refused: 0, hubs: [] };
 }
 
 /** Match on every identity field: an email alone, or a tracking ID's (provider, value). */
@@ -59,13 +76,15 @@ async function findExisting(ctx: HostContext, type: string, match: Record<string
     }
 }
 
-async function edgeCount(ctx: HostContext, nodeId: string): Promise<number> {
-    if (!ctx.graph?.neighbors) return 0;
+/** How many edges the node already has, and the label of the seed's link to it if there is one. */
+async function linksOf(ctx: HostContext, nodeId: string, seedId: string): Promise<{ count: number; seedLabel: string | null }> {
+    if (!ctx.graph?.neighbors) return { count: 0, seedLabel: null };
     try {
         const { edges } = await ctx.graph.neighbors(nodeId);
-        return edges.length;
+        const fromSeed = edges.find((e) => String(e.from_node_id) === seedId && String(e.to_node_id) === nodeId);
+        return { count: edges.length, seedLabel: fromSeed ? fromSeed.label : null };
     } catch {
-        return 0;
+        return { count: 0, seedLabel: null };
     }
 }
 
@@ -84,6 +103,7 @@ export async function emitHit(
     firstSeen: string,
     tally: EmitTally,
 ): Promise<void> {
+    if (hit.emit === 'crypto_address') return emitPaymentAddress(ctx, seedId, observedOn, hit, tally);
     const isEmail = hit.emit === 'email';
     const type = isEmail ? 'identity.email_address' : 'web.tracking_id';
     const existing = await findExisting(
@@ -92,12 +112,14 @@ export async function emitHit(
         isEmail ? { email: hit.value } : { provider: hit.provider, value: hit.value },
     );
     let node: GraphNode;
+    let seedLabel: string | null = null;
     if (existing) {
         node = existing;
         tally.reused++;
-        const edges = await edgeCount(ctx, String(node.id));
+        const links = await linksOf(ctx, String(node.id), seedId);
+        seedLabel = links.seedLabel;
         const label = isEmail ? hit.value : `${hit.provider} ${hit.value}`;
-        if (edges >= fanoutLimit(hit.kind)) tally.hubs.push({ value: label, edges, kind: hit.kind });
+        if (links.count >= fanoutLimit(hit.kind)) tally.hubs.push({ value: label, edges: links.count, kind: hit.kind });
     } else {
         const data: Record<string, unknown> = isEmail
             ? { email: hit.value, domain: hit.value.split('@')[1] || '' }
@@ -116,7 +138,69 @@ export async function emitHit(
     await ctx.graph!.createEdge!({
         from: seedId,
         to: String(node.id),
-        label: isEmail ? 'pays' : 'carries tracking ID',
+        label: seedLabel ?? (isEmail ? 'pays' : 'carries tracking ID'),
         data: { collector: hit.key, source: hit.source, observed_on: observedOn },
+    });
+}
+
+/** An existing address node on the same network whose address folds to the same value. */
+async function findAddress(ctx: HostContext, network: string, address: string): Promise<GraphNode | null> {
+    if (!ctx.graph?.list) return null;
+    const want = identityFold(address);
+    try {
+        const { nodes } = await ctx.graph.list({ type: CRYPTO_ADDRESS });
+        return (
+            nodes.find(
+                (n) =>
+                    n.data?.network === network &&
+                    identityFold(String(n.data?.address ?? '')) === want &&
+                    // A payment link names no memo, so only the memo-less address is the same one.
+                    (n.data?.memo == null || n.data.memo === ''),
+            ) ?? null
+        );
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * A payment address: a Cryptocurrency pack address node, linked from the seed by
+ * "accepts payment to".
+ *
+ * The node carries only what identifies it. When and where the address was seen belongs to this
+ * observation — the edge — and the type's own `first_seen` means first activity ON CHAIN, which a
+ * web page cannot tell us.
+ */
+async function emitPaymentAddress(
+    ctx: HostContext,
+    seedId: string,
+    observedOn: string,
+    hit: Hit,
+    tally: EmitTally,
+): Promise<void> {
+    const network = hit.network ?? 'unknown';
+    let node = await findAddress(ctx, network, hit.value);
+    let seedLabel: string | null = null;
+    if (node) {
+        tally.reused++;
+        const links = await linksOf(ctx, String(node.id), seedId);
+        seedLabel = links.seedLabel;
+        if (links.count >= fanoutLimit(hit.kind)) tally.hubs.push({ value: `${network} ${hit.value}`, edges: links.count, kind: hit.kind });
+    } else {
+        try {
+            node = await ctx.graph!.createNode!({ type: CRYPTO_ADDRESS, data: { network, address: hit.value } });
+        } catch (e) {
+            // Cancellation is not a refusal.
+            if ((e as { name?: string } | null)?.name === 'AbortError') throw e;
+            tally.refused++;
+            return;
+        }
+        tally.created++;
+    }
+    await ctx.graph!.createEdge!({
+        from: seedId,
+        to: String(node.id),
+        label: seedLabel ?? 'accepts payment to',
+        data: { collector: hit.key, source: hit.source, observed_on: observedOn, ...(hit.extra ?? {}) },
     });
 }

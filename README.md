@@ -23,12 +23,28 @@ history. A shared publisher ID outlives the pivots that stop working.
 
 ## The collector table
 
-121 collectors, one per markup **shape** rather than per provider.
+122 collectors, one per markup **shape** rather than per provider.
 
 Each node holds the identifier exactly as the page carries it (`G-SXM8TFRYSW`, `4823917`) with
 the issuer in `provider`. `web.tracking_id` identity is the pair: half these networks issue a bare
 five-to-nine digit integer, so `4823917` alone would merge one operator's ad zone with an
 unrelated operator's.
+
+Cryptocurrency payment addresses are the exception: they become `cryptocurrency.crypto_address`
+nodes (identity `network` + `address`), linked from the page by `accepts payment to`. A
+`web.tracking_id` folds its value to lower case, which would merge Base58 wallets (Monero, legacy
+Bitcoin, Litecoin, Dogecoin) that differ by case alone. The network comes from the link's scheme
+(`bitcoin:`, `bitcoincash:`, `litecoin:`, `dogecoin:`, `monero:`) or the bare format (`bc1…`, a
+Monero address); an EIP-681 `ethereum:` request names one only with a decimal `@<chain_id>`
+(1 ethereum, 56 bsc, 137 polygon, …) and is `evm` without it (`@0x38`, hex, counts as none). For `ethereum:<token>/transfer?address=<payee>`
+the payee is the `address` parameter, and the token contract and chain id go on the edge. Addresses
+are written in the type pack's canonical form (EVM and bech32 in lower case, a Bitcoin Cash legacy
+address as CashAddr, a Litecoin `3…` as `M…`), and one that fails its own checksum is dropped.
+
+A project has one link per pair of nodes, so when the seed is already linked to a node the run
+finds, Ad Tag Extract keeps that link's label (an analyst's "donation wallet", say) and only adds
+its data, instead of proposing a relabel on every run. Reading those links, and counting how many
+sites already share an identifier, is why it asks for `edge:read`.
 
 ## Checks
 
@@ -43,7 +59,8 @@ counts, distinct values and negative-corpus leaks. Dev only; not bundled.
 
 ## Requires
 
-`run.vineyard.typepacks.infrastructure` >= 2.4.0 (free-text `provider`, `payment_recipient` edge)
-and `run.vineyard.typepacks.identity` (PayPal's `business=` address becomes an
+`run.vineyard.typepacks.infrastructure` >= 2.4.0 (free-text `provider`, `payment_recipient` edge),
+`run.vineyard.typepacks.identity` (PayPal's `business=` address becomes an
 `identity.email_address`, where it converges with WHOIS contacts and breach data instead of sitting
-in a tracking-ID silo).
+in a tracking-ID silo) and `run.vineyard.typepacks.cryptocurrency` (payment addresses). A project
+without the last refuses the address nodes; the run counts them and says to install it.

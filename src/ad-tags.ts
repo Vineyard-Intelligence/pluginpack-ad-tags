@@ -26,7 +26,7 @@ export const adTags = definePlugin({
         name: 'Ad Tag Extract',
         version: '1.2.0',
         description:
-            'Fetches each selected URL, Domain or IP Address and extracts the advertising, analytics, tag-manager, site-verification, affiliate and payment account identifiers in its markup as Tracking ID nodes linked by "carries tracking ID"; PayPal recipient addresses become Email Address nodes linked by "pays". By default also reads the Google Tag Manager containers the page references. Desktop only.',
+            'Fetches each selected URL, Domain or IP Address and extracts the advertising, analytics, tag-manager, site-verification, affiliate and payment account identifiers in its markup as Tracking ID nodes linked by "carries tracking ID"; PayPal recipient addresses become Email Address nodes linked by "pays", and cryptocurrency payment addresses (bitcoin:, ethereum: and similar links, bare bc1 and Monero addresses) become Crypto Address nodes on their network linked by "accepts payment to". By default also reads the Google Tag Manager containers the page references. Desktop only.',
         icon: 'megaphone',
         author: { name: 'VINEYARD', url: 'https://vineyard.run' },
         license: 'Apache-2.0',
@@ -44,6 +44,7 @@ export const adTags = definePlugin({
             produces: [
                 { typepack: 'run.vineyard.typepacks.infrastructure', category: 'web', name: 'tracking_id' },
                 { typepack: 'run.vineyard.typepacks.identity', category: 'identity', name: 'email_address' },
+                { typepack: 'run.vineyard.typepacks.cryptocurrency', category: 'cryptocurrency', name: 'crypto_address' },
             ],
         },
         params: {
@@ -73,7 +74,9 @@ export const adTags = definePlugin({
             },
         },
         scopes: {
-            graph: ['node:read', 'node:create', 'edge:create'],
+            // edge:read: to keep the wording of a link the seed already has to a found node, and
+            // to count how many sites share an identifier (see emit.ts).
+            graph: ['node:read', 'edge:read', 'node:create', 'edge:create'],
             web_probe: {
                 purpose:
                     'Fetch the selected sites’ pages, and optionally their Google Tag Manager containers, to extract the account identifiers in them.',
@@ -179,12 +182,12 @@ export const adTags = definePlugin({
             if (!anyMarkup) ctx.progress?.log?.(`${seed.value}: no readable markup from ${targets.length} attempt(s)`);
         }
 
-        return { summary: summarize(tally, { scanned, unreachable, challenged, mismatched, truncated, containers, skipped, brokenCollectors }), counts: { created: tally.created, reused: tally.reused, pages: scanned, containers, challenged, unreachable } };
+        return { summary: summarize(tally, { scanned, unreachable, challenged, mismatched, truncated, containers, skipped, brokenCollectors }), counts: { created: tally.created, reused: tally.reused, refused: tally.refused, pages: scanned, containers, challenged, unreachable } };
     },
 });
 
 function summarize(
-    tally: { created: number; reused: number; hubs: Array<{ value: string; edges: number; kind: string }> },
+    tally: { created: number; reused: number; refused: number; hubs: Array<{ value: string; edges: number; kind: string }> },
     s: { scanned: number; unreachable: number; challenged: number; mismatched: number; truncated: number; containers: number; skipped: number; brokenCollectors: Set<string> },
 ): string {
     const total = tally.created + tally.reused;
@@ -205,6 +208,11 @@ function summarize(
         const worst = tally.hubs.sort((a, b) => b.edges - a.edges)[0];
         parts.push(
             `${tally.hubs.length} identifier(s) are already linked to many sites — ${worst.value} has ${worst.edges}. At that fan-out a shared marketing account or a CMS default is likelier than a shared operator; treat those edges as weak`,
+        );
+    }
+    if (tally.refused) {
+        parts.push(
+            `${tally.refused} payment address(es) were refused — install or update the Cryptocurrency type pack (run.vineyard.typepacks.cryptocurrency) in this project and run again`,
         );
     }
     if (s.brokenCollectors.size) parts.push(`${s.brokenCollectors.size} collector(s) failed to compile: ${[...s.brokenCollectors].join(', ')}`);

@@ -16,6 +16,7 @@
 //    like a discovery, with hundreds of edges.
 import { PROVIDER_ALIAS, googlePubPrefix } from './collectors';
 import type { Collector, HitPhase } from './collectors';
+import { paymentTarget } from './payment';
 
 export interface Hit {
     key: string;
@@ -24,9 +25,16 @@ export interface Hit {
     source: string;
     /** The identifier as it appeared. */
     raw: string;
-    /** The node value: the identifier verbatim (identity is provider + value). */
+    /** The node value: the identifier verbatim (identity is provider + value). For a crypto
+     *  address, the address in the Cryptocurrency pack's canonical form for `network`. */
     value: string;
-    emit: 'tracking_id' | 'email';
+    emit: 'tracking_id' | 'email' | 'crypto_address';
+    /** Crypto addresses only: the type pack's `network`. `provider` carries the same value, so a
+     *  hit still reads as `provider:value` in the fixtures and the run log. */
+    network?: string;
+    /** Crypto addresses only: what the payment link said beyond the address (chain id, token
+     *  contract, scheme), recorded on the edge. */
+    extra?: Record<string, unknown>;
     note: string;
 }
 
@@ -111,6 +119,31 @@ export function scan(
             // ads.txt rows name their own ad system in field 1; everything else has a fixed slug.
             const slug = c.providerFromGroup ? (m[c.providerFromGroup] ?? '').trim().toLowerCase() : c.provider;
             if (!slug) continue;
+
+            if (c.emit === 'crypto_address') {
+                // The network decides identity here, not a provider slug, and the value has to be
+                // the canonical address for it — so a bare bc1 match and a bitcoin: link to the same
+                // wallet converge, and a value failing its own checksum is dropped.
+                const target = paymentTarget(c.key, slug, m, raw0);
+                if (!target) continue;
+                const cryptoKey = `crypto:${target.network}:${target.address}`;
+                if (seen.has(cryptoKey)) continue;
+                seen.add(cryptoKey);
+                hits.push({
+                    key: c.key,
+                    provider: target.network,
+                    kind: c.kind,
+                    source: c.source,
+                    raw: matched,
+                    value: target.address,
+                    emit: 'crypto_address',
+                    network: target.network,
+                    extra: target.extra,
+                    note: c.note,
+                });
+                continue;
+            }
+
             const provider = PROVIDER_ALIAS[slug] ?? slug;
             const raw = googlePubPrefix(provider, raw0);
 
